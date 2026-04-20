@@ -1395,10 +1395,12 @@ void find_force_ZBL_small_box(
         double rc_outer = zbl.rc_outer;
         if (paramb.use_typewise_cutoff_zbl) {
           // zi and zj start from 1, so need to minus 1 here
+          // modified by Boyuan Xu 20260420 to enable use_typewise_cutoff_zbl
           rc_outer = std::min(
             (COVALENT_RADIUS[zi - 1] + COVALENT_RADIUS[zj - 1]) * paramb.typewise_cutoff_zbl_factor,
             rc_outer);
-          rc_inner = rc_outer * 0.5f;
+          // rc_inner = rc_outer * 0.5f;
+          rc_inner =  0.0f;
         }
         find_f_and_fp_zbl(zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
       }
@@ -2604,13 +2606,21 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // zbl 0.7 1.4
   if (zbl.enabled) {
     tokens = get_tokens(input);
-    if (tokens.size() != 3) {
+    // modified by Boyuan Xu 20260420 to enable use_typewise_cutoff_zbl
+    if (tokens.size() == 3) {
+      zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
+      zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
+    } else if (tokens.size() == 4) {
+      zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
+      zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
+      paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[3], __FILE__, __LINE__);
+      paramb.use_typewise_cutoff_zbl = true;
+    }
+    else {
       print_tokens(tokens);
       std::cout << "This line should be zbl rc_inner rc_outer." << std::endl;
       exit(1);
     }
-    zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
-    zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
     if (zbl.rc_inner == 0 && zbl.rc_outer == 0) {
       zbl.flexibled = true;
     }
